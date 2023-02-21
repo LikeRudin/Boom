@@ -11,4 +11,6 @@ socket.addEventListener("close", () => {
 socket.addEventListener("message", (message) => {console.log("just got this : " + message + "from Server")});
 
 
-setTimeout(()=> {socket.send("Hello from server")}, 10000);
+setTimeout(()=> {
+    socket.send("Hello from server")
+}, 10000);
