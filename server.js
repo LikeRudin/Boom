@@ -16,18 +16,39 @@ console.log("hello");
 
 const handleListen = () => console.log("Listening on ws://localhost:3000");
 
-const server = new http.createServer(app);
+const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
+const sockets = [];
+
+
 wss.on("connection", (socket) => {
+    sockets.push(socket);
+    socket["nickname"] = "Someone";
     console.log("Connected to Browser ❤");
     socket.on("close", () => {
         console.log("Disconnected from Browser 💔")
     });
-    socket.on("message", (message) => {
-        console.log(message)
+    socket.on("message", (JSONedMsg) => {
+       const message = JSON.parse(JSONedMsg);
+       console.log(message)
+       switch (message.type) {
+        case "newMsg":
+            sockets.forEach((aSocket) =>
+          aSocket.send(`${socket.nickname}: ${message.payload} \n time: ${message.time}`)
+    
+        );
+        break
+        case "nickname":
+            socket["nickname"] = message.payload;
+            sockets.forEach((aSocket) =>
+          aSocket.send(`${socket.nickname} is new Nickname \n time: ${message.time}`)
+    
+        );
+        break
+       }
+       
     });
-    socket.send("Hello zito Hello");
 });
 
 
