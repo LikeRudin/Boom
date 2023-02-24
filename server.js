@@ -1,5 +1,6 @@
 import http from "http";
-import WebSocket from "ws";
+// import WebSocket from "ws";
+import SocketIO from "socket.io";
 import express from "express";
 
 
@@ -14,21 +15,70 @@ app.get("/*", (_, res) => res.redirect("/"));
 
 console.log("hello");
 
-const handleListen = () => console.log("Listening on ws://localhost:3000");
+const handleListen = () => console.log("Listening on http://localhost:3000");
 
-const server = new http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const httpserver = http.createServer(app);
+// const wss = new WebSocket.Server({ server });
+const ioServer = SocketIO(httpserver);
 
-wss.on("connection", (socket) => {
-    console.log("Connected to Browser ❤");
-    socket.on("close", () => {
-        console.log("Disconnected from Browser 💔")
+//listen for client connection
+// done(); is amazing part of socket io
+//it is operating method in app.js
+
+ioServer.on("connection", (socket) => {
+    socket["nickname"] = "someone";
+    socket.onAny((event) => {
+      console.log(`Socket Event: ${event}`);
     });
-    socket.on("message", (message) => {
-        console.log(message)
+    socket.on("enter_room", (roomName, done) => {
+      socket.join(roomName);
+      done();
+      socket.to(roomName, socket.nickname).emit("welcome", socket.nickname);
     });
-    socket.send("Hello zito Hello");
+    socket.on("disconnecting", () => {
+        socket.rooms.forEach((room) =>
+        socket.to(room).emit("bye", `see you agian :${socket.nickname}`)
+      );
+    });
+
+    socket.on("new_message", (msg, room, done) => {
+        socket.to(room).emit("new_message", `${socket.nickname}: ${msg}`);
+        done();
+    });
+    socket.on("nickname", (nickname) => (socket["nickname"] = nickname));
 });
 
 
-server.listen(3000, handleListen);
+
+httpserver.listen(3000, handleListen);
+
+// const sockets = [];
+
+// wss.on("connection", (socket) => {
+//     sockets.push(socket);
+//     socket["nickname"] = "Someone";
+//     console.log("Connected to Browser ❤");
+//     socket.on("close", () => {
+//         console.log("Disconnected from Browser 💔")
+//     });
+//     socket.on("message", (JSONedMsg) => {
+//        const message = JSON.parse(JSONedMsg);
+//        console.log(message)
+//        switch (message.type) {
+//         case "newMsg":
+//             sockets.forEach((aSocket) =>
+//           aSocket.send(`${socket.nickname}: ${message.payload} \n time: ${message.time}`)
+    
+//         );
+//         break
+//         case "nickname":
+//             socket["nickname"] = message.payload;
+//             sockets.forEach((aSocket) =>
+//           aSocket.send(`${socket.nickname} is new Nickname \n time: ${message.time}`)
+    
+//         );
+//         break
+//        }
+       
+//     });
+// });
